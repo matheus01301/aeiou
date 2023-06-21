@@ -11,9 +11,11 @@ import {
   YAxis,
   Tooltip
 } from 'recharts';
+import { styled } from "./../stitches.config";
+
+
 
 export async function getStaticProps() {
-
   const welldata = [
     {
       "hole_depth": 0,
@@ -32,50 +34,52 @@ export async function getStaticProps() {
       "c2": 10
     }
   ];
-
-return {
-  props: {
-    welldata,
-  }, // will be passed to the page component as props
+  return {
+    props: {
+      welldata,
+    }, // will be passed to the page component as props
+  }
 }
-}
-
 function App() {
-  const [value, setValue] = useState({});
-
+  const [value, setValue] = useState([]);
   useEffect(() => {
-    fetch('http://localhost:8000/clp_test')
-      .then( response => {
-        if (response.ok){
-          return response.json()
-        }
-        throw response;
-      })
-      .then(data =>{
-        setValue(data)
-      })
-      .catch(error => {
-        console.error("Erro!", error)
-      })
+    const fetchValue = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/clp_test');
+        const newValue = await response.json();
+        //setValue(jsonValue);
+        const maxValueSize = 10;
 
-    console.log(value[0])
-    // const socket = new WebSocket('ws://localhost:8000/ws');
-    
-    // socket.onmessage = (event) => {
-    //   console.log(typeof(event.data))
-    // };
-    
-    // return () => {
-    //   socket.close();
-    }, []);
-  
+        setValue(prevValue => {
+          // Verifica o tamanho atual dos dados
+          if (prevValue.length >= maxValueSize) {
+            // Remove o primeiro elemento do array de dados
+            return prevValue.slice(1);
+          }
+          // Adiciona o novo dado ao final do array de dados
+          return [...prevValue, newValue];
+        });
+      } catch (error) {
+        console.error('Erro:', error);
+      }
+      // const socket = new WebSocket('ws://localhost:8000/ws');
+      // socket.onmessage = (event) => {
+      //   console.log(typeof(event.data))
+      // };
+      // return () => {
+      //   socket.close();
+    };
+    //fetchValue();
+    const interval = setInterval(fetchValue, 500);
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div>
-      <p>{value !== null ? `Valor atual: ${value}` : 'Carregando...'}</p>
-      <Chart data = {value}/>
+      <Chart data={value} />
     </div>
   );
 }
-
-export default App
+export default App;
